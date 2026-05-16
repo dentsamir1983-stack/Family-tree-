@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>شجرة العيلة</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0e0b08;color:#f0e8d8;font-family:'Tajawal',sans-serif;max-width:430px;margin:0 auto;min-height:100vh;direction:rtl}
+:root{--accent:#d4a94a;--border:rgba(212,169,74,0.18)}
+input,select,textarea{font-family:'Tajawal',sans-serif;font-size:15px;direction:rtl;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:12px;color:#f0e8d8;padding:11px 14px;width:100%;outline:none;-webkit-appearance:none}
+button{font-family:'Tajawal',sans-serif;cursor:pointer;border:none}
+
+#topbar{position:sticky;top:0;z-index:100;background:rgba(14,11,8,0.96);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between}
+.add-btn{padding:7px 16px;border-radius:10px;background:rgba(46,125,50,0.3);border:1px solid rgba(46,125,50,0.5);color:#7ec87e;font-size:20px;font-weight:800;line-height:1}
+
+#bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(10,8,5,0.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;padding:8px 0 20px;z-index:100}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;background:none;border:none;color:#4a3a28;font-size:11px}
+.nav-btn.active{color:var(--accent)}
+.nav-dot{width:20px;height:2px;border-radius:1px;background:var(--accent);margin-top:1px}
+
+#content{padding-bottom:90px}
+#sync-bar{background:rgba(46,125,50,0.15);border-bottom:1px solid rgba(46,125,50,0.2);padding:6px 16px;font-size:12px;color:#7ec87e;display:none;align-items:center;gap:6px}
+#sync-bar.show{display:flex}
+
+.cards-grid{display:flex;flex-direction:column;padding:0 0 80px}
+.member-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.member-row:active{background:rgba(212,169,74,0.05)}
+.member-info{flex:1;min-width:0;cursor:pointer}
+.m-name{font-weight:700;font-size:15px;color:#f0e8d8}
+.m-name.dead{color:#a89060}
+.m-sub{color:#6a5a42;font-size:12px;margin-top:1px}
+.row-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.tree-btn{background:rgba(212,169,74,0.15);border:1px solid rgba(212,169,74,0.3);border-radius:8px;color:var(--accent);font-size:13px;padding:5px 9px}
+.d-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#4a3a28;font-size:11px;padding:5px 8px}
+.d-btn.dead{background:rgba(139,105,20,0.15);border-color:rgba(139,105,20,0.4);color:#c8a040}
+
+#gallery-view{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding-bottom:80px}
+.g-item{position:relative;aspect-ratio:1;overflow:hidden;cursor:pointer}
+.g-item img{width:100%;height:100%;object-fit:cover}
+.g-label{position:absolute;bottom:0;left:0;right:0;padding:16px 6px 6px;background:linear-gradient(transparent,rgba(0,0,0,0.75));text-align:center;font-size:11px;font-weight:700}
+
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-weight:800;color:#fff;position:relative}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.av-m{background:linear-gradient(145deg,#1e4d8c,#2d7dd2);border:2.5px solid #4fa3e8}
+.av-f{background:linear-gradient(145deg,#7b2869,#c2559a);border:2.5px solid #e48fca}
+.dead-dot{position:absolute;bottom:-2px;right:-2px;background:#3a2010;border:1.5px solid #8b6914;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px}
+
+.age-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:2px}
+.age-yr{color:#7a6a52;font-size:11px}
+.age-b{font-size:10px;border-radius:6px;padding:1px 6px}
+.age-b.alive{color:#3a7a3a;background:rgba(58,122,58,0.18)}
+.age-b.dead{color:#8b6914;background:rgba(139,105,20,0.18)}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);z-index:200;display:none}
+.overlay.show{display:block}
+.sheet{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:linear-gradient(170deg,#1a1208,#0e0b06);border:1px solid var(--border);border-radius:24px 24px 0 0;max-height:90vh;overflow-y:auto;z-index:201;direction:rtl;display:none}
+.s-handle{display:flex;justify-content:center;padding:12px 0 4px}
+.s-bar{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,0.12)}
+.s-head{display:flex;align-items:center;justify-content:space-between;padding:8px 20px 14px;border-bottom:1px solid var(--border)}
+.s-title{font-weight:800;font-size:18px;color:#f0e8d8}
+.s-close{background:rgba(255,255,255,0.08);border:none;border-radius:20px;color:#a89880;padding:4px 12px;font-size:13px}
+.s-body{padding:16px 20px 32px;display:flex;flex-direction:column;gap:14px}
+.f-label{display:block;color:#8a7a62;font-size:13px;margin-bottom:5px}
+.f-row{display:flex;gap:10px}
+.f-row>div{flex:1}
+.g-btns{display:flex;gap:8px}
+.g-btn{flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:#f0e8d8;font-size:14px}
+.g-btn.m.on{border-color:#2d7dd2;background:rgba(46,125,210,0.2)}
+.g-btn.f.on{border-color:#c2559a;background:rgba(194,85,154,0.2)}
+textarea{height:72px;resize:vertical}
+select[multiple]{height:72px}
+.save-btn{width:100%;padding:14px;border-radius:14px;background:linear-gradient(135deg,#2e7d32,#1b5e20);color:#fff;font-weight:800;font-size:16px}
+.act-btns{display:flex;gap:10px}
+.act-btn{flex:1;padding:11px;border-radius:10px;color:#fff;font-weight:700;font-size:14px}
+
+.mini-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);min-width:76px;cursor:pointer}
+.mini-card:active{background:rgba(212,169,74,0.1)}
+.mini-name{font-weight:700;color:#f0e8d8;font-size:11px;text-align:center;line-height:1.3}
+.mini-rel{color:#6a5a42;font-size:9px}
+
+.info-lbl{color:var(--accent);font-size:12px;font-weight:700;margin-bottom:6px;letter-spacing:.5px}
+.tag{display:inline-block;color:#c8b89a;background:rgba(255,255,255,0.07);border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;margin:2px}
+.bio-box{background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.8;color:#c8b89a}
+
+.search-wrap{padding:12px 16px;position:relative}
+.s-icon{position:absolute;right:30px;top:50%;transform:translateY(-50%);opacity:.4;font-size:16px}
+
+#loading{position:fixed;inset:0;background:#0e0b08;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px}
+.spinner{width:40px;height:40px;border:3px solid rgba(212,169,74,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div style="font-size:40px">🌳</div>
+  <div class="spinner"></div>
+  <p style="color:#5a4a38;font-size:14px">جاري التحميل...</p>
+</div>
+
+<div id="topbar" style="display:none">
+  <div>
+    <div style="font-weight:800;font-size:18px">🌳 شجرة العيلة</div>
+    <div style="color:#5a4a38;font-size:12px;margin-top:2px" id="cnt">0 فرد</div>
+  </div>
+  <button class="add-btn" onclick="openAdd()">＋</button>
+</div>
+
+<div id="sync-bar">🟢 <span>متصل — التغييرات تظهر فوراً للجميع</span></div>
+
+<div id="content" style="display:none">
+  <div id="tree-view"></div>
+  <div id="list-view" style="display:none"></div>
+  <div id="gallery-view" style="display:none"></div>
+</div>
+
+<div id="bottom-nav" style="display:none">
+  <button class="nav-btn active" onclick="switchTab('tree',this)">
+    <span style="font-size:22px">👨‍👩‍👧</span><span>الأفراد</span><div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" onclick="switchTab('list',this)">
+    <span style="font-size:22px">🔍</span><span>بحث</span>
+  </button>
+  <button class="nav-btn" onclick="switchTab('gallery',this)">
+    <span style="font-size:22px">🖼️</span><span>الصور</span>
+  </button>
+</div>
+
+<div class="overlay" id="ov" onclick="closeSheet()"></div>
+<div class="sheet" id="sh"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyCLhvqsUe2Fkscw8dqJ3tevaRIDms_D9tI",
+  authDomain:"family-tree-a2da7.firebaseapp.com",
+  projectId:"family-tree-a2da7",
+  storageBucket:"family-tree-a2da7.firebasestorage.app",
+  messagingSenderId:"59565031581",
+  appId:"1:59565031581:web:485d8840c7196001ba9474"
+});
+const db = getFirestore(app);
+
+let members=[], tab='tree', q='';
+
+onSnapshot(collection(db,"members"), snap=>{
+  members = snap.docs.map(d=>({id:d.id,...d.data()}));
+  document.getElementById('loading').style.display='none';
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('content').style.display='block';
+  document.getElementById('bottom-nav').style.display='flex';
+  document.getElementById('sync-bar').classList.add('show');
+  document.getElementById('cnt').textContent = members.length+' فرد';
+  render();
+}, ()=>{
+  document.getElementById('loading').innerHTML='<div style="font-size:36px">⚠️</div><p style="color:#c87a7a;text-align:center;padding:0 24px">خطأ في الاتصال.</p>';
+});
+
+const save = m => setDoc(doc(db,"members",String(m.id)),m);
+const del = id => deleteDoc(doc(db,"members",String(id)));
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+const age = (b,d) => { if(!b) return null; const by=parseInt(b),dy=d?parseInt(d):new Date().getFullYear(); return isNaN(by)||isNaN(dy)?null:dy-by; };
+const spouse = m => m.spouseId ? members.find(x=>String(x.id)===String(m.spouseId))||null : null;
+const kids = m => { const sp=spouse(m); return members.filter(c=>{ if(!c.parentIds?.length) return false; const p=c.parentIds.map(String); return p.includes(String(m.id))||(sp&&p.includes(String(sp.id))); }).filter((c,i,a)=>a.findIndex(x=>x.id===c.id)===i); };
+
+const av = (m,sz) => {
+  const cl = m.gender==='female'?'av-f':'av-m';
+  const inner = m.photo?`<img src="${m.photo}">`:`<span style="font-size:${sz*.4}px">${(m.name||'?').charAt(0)}</span>`;
+  const badge = m.death?`<div class="dead-dot">🕊️</div>`:'';
+  return `<div class="avatar ${cl}" style="width:${sz}px;height:${sz}px">${inner}${badge}</div>`;
+};
+
+const ageRow = m => {
+  if(!m.birth) return '';
+  const d=!!m.death, a=age(m.birth,m.death);
+  let h=`<span class="age-yr">${m.birth}</span>`;
+  if(d&&m.death) h+=`<span class="age-yr">— ${m.death}</span>`;
+  if(a!==null) h+=`<span class="age-b ${d?'dead':'alive'}">${d?'🕊️ ':''}${a} سنة</span>`;
+  return `<div class="age-row">${h}</div>`;
+};
+
+// ── render ────────────────────────────────────────────────────────────────────
+const render = () => { if(tab==='tree') renderAll(); else if(tab==='list') renderSearch(); else renderGallery(); };
+
+function rowHtml(m) {
+  const d=!!m.death, sp=spouse(m), ch=kids(m), hasF=sp||ch.length>0;
+  return `<div class="member-row">
+    <div onclick="openProfile('${m.id}')" style="position:relative;flex-shrink:0">${av(m,50)}</div>
+    <div class="member-info" onclick="openProfile('${m.id}')">
+      <div class="m-name${d?' dead':''}">${m.name||''}</div>
+      <div class="m-sub">${m.relation||''}${m.birth?` · ${m.birth}`:''}</div>
+      ${ageRow(m)}
+    </div>
+    <div class="row-actions">
+      ${hasF?`<button class="tree-btn" onclick="openFamilyTree('${m.id}')">🌳</button>`:'<div style="height:29px"></div>'}
+      <button class="d-btn${d?' dead':''}" onclick="openDeath('${m.id}')">${d?'🕊️':'＋'}</button>
+    </div>
+  </div>`;
+}
+
+function renderAll() {
+  if(!members.length){ document.getElementById('tree-view').innerHTML=`<div style="text-align:center;padding:60px 24px;color:#4a3a28"><div style="font-size:48px;margin-bottom:12px">🌳</div><div>اضغط ＋ لإضافة أول فرد</div></div>`; return; }
+  const sorted=[...members].sort((a,b)=>(parseInt(a.birth)||9999)-(parseInt(b.birth)||9999));
+  document.getElementById('tree-view').innerHTML=`<div class="cards-grid">${sorted.map(rowHtml).join('')}</div>`;
+}
+
+function renderSearch() {
+  const f=members.filter(m=>m.name?.includes(q)||m.relation?.includes(q));
+  document.getElementById('list-view').innerHTML=`<div class="search-wrap"><input placeholder="ابحث..." value="${q}" oninput="window._sq(this.value)"><span class="s-icon">🔍</span></div><div class="cards-grid">${f.map(rowHtml).join('')}</div>`;
+}
+
+function renderGallery() {
+  const p=members.filter(m=>m.photo);
+  document.getElementById('gallery-view').innerHTML=p.length
+    ? p.map(m=>`<div class="g-item" onclick="openProfile('${m.id}')"><img src="${m.photo}" alt="${m.name}"><div class="g-label">${m.name||''}</div></div>`).join('')
+    : `<div style="grid-column:1/-1;text-align:center;padding:60px 24px;color:#4a3a28"><div style="font-size:48px;margin-bottom:12px">🖼️</div><div>لا توجد صور بعد</div></div>`;
+}
+
+// ── sheet ─────────────────────────────────────────────────────────────────────
+const openSheet = html => { document.getElementById('sh').innerHTML=html; document.getElementById('ov').classList.add('show'); document.getElementById('sh').style.display='block'; };
+window.closeSheet = () => { document.getElementById('ov').classList.remove('show'); document.getElementById('sh').style.display='none'; };
+
+// ── family tree popup ─────────────────────────────────────────────────────────
+window.openFamilyTree = id => {
+  const m=members.find(x=>String(x.id)===String(id)); if(!m) return;
+  const sp=spouse(m), ch=kids(m);
+
+  const mini=(p,click=true)=>{
+    if(!p) return '';
+    const d=!!p.death, a=age(p.birth,p.death);
+    return `<div class="mini-card" ${click?`onclick="closeSheet();openFamilyTree('${p.id}')"`:'style="cursor:default"'}>
+      ${av(p,44)}
+      <div class="mini-name${d?' dead':''}">${p.name||''}</div>
+      <div class="mini-rel">${p.relation||''}</div>
+      ${a!==null?`<div style="font-size:9px;color:${d?'#8b6914':'#3a7a3a'}">${d?'🕊️ ':''}${a} سنة</div>`:''}
+    </div>`;
+  };
+
+  let html=`<div class="s-handle"><div class="s-bar"></div></div>
+  <div class="s-head"><span class="s-title">🌳 عيلة ${m.name||''}</span><button class="s-close" onclick="closeSheet()">إغلاق</button></div>
+  <div class="s-body">
+    <div style="display:flex;gap:8px;justify-content:center;align-items:flex-end">
+      ${mini(m,false)}
+      ${sp?`<div style="display:flex;align-items:center;margin-bottom:14px"><div style="width:10px;height:2px;background:rgba(212,169,74,0.5)"></div><span style="font-size:14px">💑</span><div style="width:10px;height:2px;background:rgba(212,169,74,0.5)"></div></div>${mini(sp)}`:''}
+    </div>`;
+
+  if(ch.length){
+    html+=`<div style="width:2px;height:14px;background:rgba(212,169,74,0.4);margin:0 auto"></div>
+    <div class="info-lbl" style="text-align:center">الأبناء (${ch.length})</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">${ch.map(c=>mini(c)).join('')}</div>`;
+  } else {
+    html+=`<div style="text-align:center;color:#4a3a28;font-size:13px">لا يوجد أبناء مسجلين</div>`;
+  }
+
+  html+=`<div class="act-btns">
+    <button class="act-btn" style="background:#1e4a8c" onclick="closeSheet();openEdit('${m.id}')">✏️ تعديل</button>
+    <button class="act-btn" style="background:rgba(212,169,74,0.15);color:var(--accent);border:1px solid var(--border)" onclick="closeSheet();openProfile('${m.id}')">👤 تفاصيل</button>
+  </div></div>`;
+
+  openSheet(html);
+};
+
+// ── profile ───────────────────────────────────────────────────────────────────
+window.openProfile = id => {
+  const m=members.find(x=>String(x.id)===String(id)); if(!m) return;
+  const sp=spouse(m), ch=kids(m);
+  const parents=(m.parentIds||[]).map(pid=>members.find(x=>String(x.id)===String(pid))).filter(Boolean);
+  const d=!!m.death, a=age(m.birth,m.death);
+  const tag=p=>`<span class="tag" onclick="closeSheet();openProfile('${p.id}')">${p.name}</span>`;
+
+  let html=`<div class="s-handle"><div class="s-bar"></div></div>
+  <div style="display:flex;align-items:center;gap:14px;padding:12px 20px 16px;border-bottom:1px solid var(--border)">
+    ${av(m,70)}
+    <div style="flex:1">
+      <div style="font-weight:800;font-size:20px;color:#f0e8d8">${m.name||''}</div>
+      <div style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:20px;font-size:12px;background:${m.gender==='female'?'rgba(194,85,154,0.25)':'rgba(46,125,210,0.25)'};color:${m.gender==='female'?'#f0a0d5':'#7ec8f7'}">${m.relation||''}</div>
+      <div style="color:#6a5a42;font-size:13px;margin-top:3px">${m.birth||''}${d&&m.death?` — ${m.death}`:''}</div>
+      ${a!==null?ageRow(m):''}
+    </div>
+  </div>
+  <div class="s-body">`;
+
+  if(m.bio) html+=`<div class="bio-box">${m.bio}</div>`;
+  if(parents.length) html+=`<div><div class="info-lbl">الوالدان</div><div>${parents.map(tag).join('')}</div></div>`;
+  if(sp) html+=`<div><div class="info-lbl">💑 الزوج / الزوجة</div>${tag(sp)}</div>`;
+  if(ch.length) html+=`<div><div class="info-lbl">👨‍👩‍👧 الأبناء (${ch.length})</div><div>${ch.map(tag).join('')}</div></div>`;
+
+  html+=`<div class="act-btns">
+    <button class="act-btn" style="background:#1e4a8c" onclick="closeSheet();openEdit('${m.id}')">✏️ تعديل</button>
+    <button class="act-btn" style="background:#7a1a1a" onclick="deleteMember('${m.id}')">🗑️ حذف</button>
+  </div></div>`;
+
+  openSheet(html);
+};
+
+// ── death ─────────────────────────────────────────────────────────────────────
+window.openDeath = id => {
+  const m=members.find(x=>String(x.id)===String(id)); if(!m) return;
+  const d=!!m.death;
+  openSheet(`<div class="s-handle"><div class="s-bar"></div></div>
+  <div class="s-body">
+    <div style="font-weight:700;font-size:16px;color:#f0e8d8">🕊️ تسجيل وفاة ${m.name||''}</div>
+    ${m.birth?`<div style="color:#6a5a42;font-size:13px" id="dp">المولود سنة ${m.birth}</div>`:''}
+    <div style="display:flex;gap:10px">
+      <input type="number" id="dy" placeholder="سنة الوفاة" value="${m.death||''}" oninput="window._pd('${m.birth}',this.value)" style="flex:1">
+      <button onclick="window._sd('${id}')" style="padding:11px 18px;border-radius:12px;background:linear-gradient(135deg,#5a2a2a,#8b2020);color:#fff;font-weight:700;font-size:14px">حفظ</button>
+    </div>
+    ${d?`<button onclick="window._sd('${id}',true)" style="width:100%;padding:9px;border-radius:10px;border:1px solid var(--border);background:transparent;color:#6a5a42;font-size:13px">إلغاء تسجيل الوفاة</button>`:''}
+    <div style="height:8px"></div>
+  </div>`);
+  setTimeout(()=>document.getElementById('dy')?.focus(),100);
+};
+
+window._pd=(b,v)=>{ const el=document.getElementById('dp'); if(!el||!b) return; const a=v&&!isNaN(parseInt(v))?parseInt(v)-parseInt(b):null; el.textContent=`المولود سنة ${b}${a!==null?' · عمره '+a+' سنة':''}`; };
+window._sd=async(id,cancel=false)=>{ const m=members.find(x=>String(x.id)===String(id)); if(!m) return; const y=cancel?null:(document.getElementById('dy')?.value||null); await save({...m,death:y||null}); closeSheet(); };
+
+// ── add/edit ──────────────────────────────────────────────────────────────────
+window.openAdd=()=>openEdit(null);
+window.openEdit=id=>{
+  const m=id?members.find(x=>String(x.id)===String(id)):null;
+  const others=members.filter(x=>String(x.id)!==String(id));
+  window._ep=m?.photo||null; window._eg=m?.gender||'male';
+
+  openSheet(`<div class="s-handle"><div class="s-bar"></div></div>
+  <div class="s-head"><span class="s-title">${m?'تعديل بيانات':'إضافة فرد جديد'}</span><button class="s-close" onclick="closeSheet()">إغلاق</button></div>
+  <div class="s-body">
+    <div style="display:flex;justify-content:center">
+      <div onclick="document.getElementById('pi').click()" style="cursor:pointer;text-align:center">
+        <div id="pp">${av(m||{name:'؟',gender:'male',photo:null},80)}</div>
+        <div style="color:var(--accent);font-size:12px;margin-top:6px">${m?.photo?'تغيير الصورة':'رفع صورة 📷'}</div>
+      </div>
+      <input type="file" id="pi" accept="image/*" style="display:none" onchange="window._pp(this)">
+    </div>
+    <div><label class="f-label">الاسم الكامل</label><input id="fn" value="${m?.name||''}"></div>
+    <div><label class="f-label">صلة القرابة</label><input id="fr" value="${m?.relation||''}"></div>
+    <div><label class="f-label">الجنس</label>
+      <div class="g-btns">
+        <button class="g-btn m ${!m||m.gender==='male'?'on':''}" onclick="window._sg('male',this)">ذكر 👨</button>
+        <button class="g-btn f ${m?.gender==='female'?'on':''}" onclick="window._sg('female',this)">أنثى 👩</button>
+      </div>
+    </div>
+    <div class="f-row">
+      <div><label class="f-label">سنة الميلاد</label><input id="fb" type="number" value="${m?.birth||''}"></div>
+      <div><label class="f-label">سنة الوفاة</label><input id="fd" type="number" value="${m?.death||''}"></div>
+    </div>
+    <div><label class="f-label">الوالدان</label>
+      <select id="fps" multiple>${others.map(o=>`<option value="${o.id}" ${m?.parentIds?.map(String).includes(String(o.id))?'selected':''}>${o.name}</option>`).join('')}</select>
+    </div>
+    <div><label class="f-label">الزوج / الزوجة</label>
+      <select id="fsp"><option value="">— لا يوجد —</option>${others.map(o=>`<option value="${o.id}" ${String(m?.spouseId)===String(o.id)?'selected':''}>${o.name}</option>`).join('')}</select>
+    </div>
+    <div><label class="f-label">نبذة</label><textarea id="fb2">${m?.bio||''}</textarea></div>
+    <button class="save-btn" onclick="window._sf('${id||''}')">💾 حفظ</button>
+  </div>`);
+};
+
+window._sg=(g,btn)=>{ window._eg=g; document.querySelectorAll('.g-btn').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); };
+window._pp=input=>{ const f=input.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'),MAX=400; let w=img.width,h=img.height; if(w>h){if(w>MAX){h=h*MAX/w;w=MAX;}}else{if(h>MAX){w=w*MAX/h;h=MAX;}} c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h); const d=c.toDataURL('image/jpeg',.6); window._ep=d; const pp=document.getElementById('pp'); if(pp) pp.innerHTML=`<div class="avatar ${window._eg||'male'} av-m" style="width:80px;height:80px"><img src="${d}"></div>`; }; img.src=ev.target.result; }; r.readAsDataURL(f); };
+window._sf=async id=>{ const name=document.getElementById('fn')?.value.trim(); if(!name){alert('الاسم مطلوب');return;} const parentIds=Array.from(document.getElementById('fps')?.selectedOptions||[]).map(o=>o.value); const spouseId=document.getElementById('fsp')?.value||null; await save({id:id||String(Date.now()),name,relation:document.getElementById('fr')?.value||'',gender:window._eg||'male',birth:document.getElementById('fb')?.value||null,death:document.getElementById('fd')?.value||null,bio:document.getElementById('fb2')?.value||'',photo:window._ep||null,parentIds,spouseId}); closeSheet(); };
+window.deleteMember=async id=>{ if(!confirm('هل تريد حذف هذا الفرد؟')) return; await del(id); closeSheet(); };
+
+// ── tabs ──────────────────────────────────────────────────────────────────────
+window.switchTab=(t,btn)=>{ tab=t; document.querySelectorAll('.nav-btn').forEach(b=>{b.classList.remove('active');b.querySelector('.nav-dot')?.remove();}); btn.classList.add('active'); const dot=document.createElement('div'); dot.className='nav-dot'; btn.appendChild(dot); ['tree-view','list-view','gallery-view'].forEach(id=>document.getElementById(id).style.display='none'); document.getElementById(t+'-view').style.display=t==='gallery'?'grid':'block'; render(); };
+window._sq=v=>{q=v;renderSearch();};
+</script>
+</body>
+</html>
