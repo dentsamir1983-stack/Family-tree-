@@ -1584,9 +1584,10 @@ function openBackup(){
   const f=$('#bkFile');if(f)f.onchange=async e=>{const file=e.target.files[0];if(!file)return;let data;try{data=JSON.parse(await file.text())}catch(err){toast('الملف ده مش نسخة من الشجرة');return}
     if(!data||!Array.isArray(data.members)){toast('الملف ده مش نسخة من الشجرة');return}
     const info=$('#bkInfo');info.innerHTML=`<p class="pmsg">الملف فيه <b>${data.members.length}</b> فرد و<b>${Object.keys(data.photos||{}).length}</b> صورة و<b>${(data.wishes||[]).length}</b> رسالة.</p>
+      <label class="chk"><input type="checkbox" id="bkOnlyPh"> رجّع الصور بس</label>
       <label class="chk"><input type="checkbox" id="bkWipe" checked> امسح الأفراد القدام اللي مش موجودين في الملف</label>
       <button class="btn pri" id="bkGo">♻️ استرجع النسخة دي</button>`;
-    $('#bkGo').onclick=()=>restoreBackup(data,$('#bkWipe').checked)};
+    $('#bkGo').onclick=()=>restoreBackup($('#bkOnlyPh').checked?{...data,members:[],wishes:[],content:{}}:data,$('#bkWipe').checked&&!$('#bkOnlyPh').checked)};
 }
 async function exportBackup(){
   let wishes=[];const src=new Map(WISH?WISH.map:[]);
@@ -1605,13 +1606,18 @@ async function restoreBackup(data,wipe){
   const {fs,fdb}=FB;const ops=[];const meta=()=>({updatedAt:fs.serverTimestamp(),updatedBy:USER.uid,updatedByName:USER.name});
   const keep=new Set(data.members.map(m=>String(m.id)));
   data.members.forEach(m=>{const {photo,photoRemoved,updatedAt,...r}=m;ops.push(b=>b.set(fs.doc(fdb,'members',String(m.id)),{...r,id:String(m.id),parentIds:(r.parentIds||[]).map(String),spouseId:r.spouseId?String(r.spouseId):null,deceased:!!r.deceased,deleted:false,...meta()}))});
-  Object.entries(data.photos||{}).forEach(([id,ph])=>ops.push(b=>b.set(fs.doc(fdb,'photos',String(id)),{data:ph,updatedAt:fs.serverTimestamp(),updatedBy:USER.uid})));
   (data.wishes||[]).forEach(w=>{if(!w.id)return;ops.push(b=>b.set(fs.doc(fdb,'wishes',String(w.id)),{...w,deleted:false,updatedAt:fs.serverTimestamp(),createdAt:fs.serverTimestamp()}))});
   if(data.content&&Object.keys(data.content).length)ops.push(b=>b.set(fs.doc(fdb,'meta','content'),{...data.content,updatedAt:fs.serverTimestamp()}));
   if(wipe)MEMBERS.forEach(m=>{if(!keep.has(m.id))ops.push(b=>b.set(fs.doc(fdb,'members',m.id),{deleted:true,...meta()},{merge:true}))});
   ops.push(b=>b.set(fs.doc(fs.collection(fdb,'audit')),{action:'restore',memberId:'',name:`${data.members.length} فرد`,fields:[],uid:USER.uid,by:USER.name,at:fs.serverTimestamp()}));
-  try{for(let i=0;i<ops.length;i+=300){const b=fs.writeBatch(fdb);ops.slice(i,i+300).forEach(f=>f(b));go.textContent=`بيرجّع… ${Math.min(i+300,ops.length)}/${ops.length}`;await b.commit()}
-    toast('النسخة اترجعت ✓');setTimeout(()=>location.reload(),900)}catch(e){toast(fbErr(e));go.disabled=false;go.textContent='♻️ استرجع النسخة دي'}
+  try{for(let i=0;i<ops.length;i+=300){const b=fs.writeBatch(fdb);ops.slice(i,i+300).forEach(f=>f(b));go.textContent=`بيرجّع الأفراد… ${Math.min(i+300,ops.length)}/${ops.length}`;await b.commit()}}
+  catch(e){toast(fbErr(e));go.disabled=false;go.textContent='♻️ استرجع النسخة دي';$('#bkInfo').insertAdjacentHTML('beforeend',`<p class="warnbox">الأفراد ما اترجعوش: ${esc(fbErr(e))} (${esc(e.code||e.message||'')})</p>`);return}
+  // photos go one by one, so one bad photo never blocks the rest
+  const phs=Object.entries(data.photos||{});let ok=0,bad=0,lastErr=null;
+  for(const [id,ph] of phs){go.textContent=`بيرجّع الصور… ${ok+bad+1}/${phs.length}`;
+    try{const b=fs.writeBatch(fdb);b.set(fs.doc(fdb,'photos',String(id)),{data:ph,updatedAt:fs.serverTimestamp(),updatedBy:USER.uid});await b.commit();ok++}catch(e){bad++;lastErr=e}}
+  $('#bkInfo').innerHTML=`<p class="pmsg">✓ رجعوا <b>${data.members.length}</b> فرد و<b>${ok}</b> صورة.</p>${bad?`<p class="warnbox">${bad} صورة ما رجعتش: ${esc(fbErr(lastErr))} (${esc(lastErr.code||lastErr.message||'')})</p>`:''}<button class="btn pri" onclick="location.reload()">تمام، افتح الشجرة</button>`;
+
 }
 
 /* ---------- الأمنيات والدعوات ---------- */
